@@ -21,22 +21,22 @@ export class GeminiOpenAIConverter {
   }
 
   static convertResponseFromOpenAI(
-    response: OpenAI.Chat.ChatCompletion,
-    context: RequestContext,
+    _response: OpenAI.Chat.ChatCompletion,
+    _context: RequestContext,
   ): GenerateContentResponse {
     // TODO(Phase 2.3): Implement response conversion
-    return new GenerateContentResponse({ candidates: [] });
+    return { candidates: [] } as unknown as GenerateContentResponse;
   }
 
   static convertChunkFromOpenAI(
-    chunk: OpenAI.Chat.ChatCompletionChunk,
-    context: RequestContext,
+    _chunk: OpenAI.Chat.ChatCompletionChunk,
+    _context: RequestContext,
   ): GenerateContentResponse {
     // TODO(Phase 2.4): Implement streaming chunk conversion
-    return new GenerateContentResponse({ candidates: [] });
+    return { candidates: [] } as unknown as GenerateContentResponse;
   }
 
-  static convertToolsToOpenAI(tools: any): OpenAI.Chat.ChatCompletionTool[] {
+  static convertToolsToOpenAI(_tools: any): OpenAI.Chat.ChatCompletionTool[] {
     // TODO(Phase 2.1): Implement tool conversion
     return [];
   }

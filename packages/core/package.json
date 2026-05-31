@@ -24,6 +24,7 @@
   ],
   "dependencies": {
     "@a2a-js/sdk": "0.3.11",
+    "@anthropic-ai/sdk": "^0.100.1",
     "@bufbuild/protobuf": "^2.11.0",
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/opentelemetry-cloud-monitoring-exporter": "^0.21.0",
@@ -77,7 +78,7 @@
     "mime": "4.0.7",
     "mnemonist": "^0.40.3",
     "open": "^10.1.2",
-    "openai": "^6.39.0",
+    "openai": "^6.39.1",
     "picomatch": "^4.0.1",
     "proper-lockfile": "^4.1.2",
     "puppeteer-core": "^24.0.0",

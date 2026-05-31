@@ -8,7 +8,7 @@
  * Parser for extracting `<thinking>` tags from LLM responses.
  */
 export class TaggedThinkingParser {
-  parse(text: string): { thinking: string; content: string } | null {
+  parse(_text: string): { thinking: string; content: string } | null {
     // TODO(Phase 2.6): Implement tagged thinking parser
     return null;
   }

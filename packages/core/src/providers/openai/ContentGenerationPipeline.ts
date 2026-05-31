@@ -6,17 +6,10 @@
 
 import type { GenerateContentParameters } from '@google/genai';
 import { GenerateContentResponse } from '@google/genai';
-import type OpenAI from 'openai';
 
-/**
- * Orchestrates the complete request/response pipeline for OpenAI-compatible APIs.
- */
 export class ContentGenerationPipeline {
-  private client: OpenAI;
-
-  constructor(config: any) {
+  constructor(_config: any) {
     // TODO(Phase 2.7): Implement pipeline initialization
-    this.client = {} as OpenAI;
   }
 
   async execute(

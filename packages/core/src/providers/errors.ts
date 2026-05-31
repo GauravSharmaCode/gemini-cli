@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ProviderType } from './providerTypes.js';
+import type { ProviderType } from './providerTypes.js';
 
 /**
  * Base class for provider-related errors.
@@ -12,13 +12,18 @@ import { ProviderType } from './providerTypes.js';
  * can render them consistently regardless of the underlying provider.
  */
 export class ProviderError extends Error {
+  readonly providerType: ProviderType;
+  readonly code: string;
+
   constructor(
     message: string,
-    public readonly providerType: ProviderType,
-    public readonly code: string,
+    providerType: ProviderType,
+    code: string,
   ) {
     super(message);
     this.name = 'ProviderError';
+    this.providerType = providerType;
+    this.code = code;
   }
 }
 
@@ -37,13 +42,16 @@ export class ProviderAuthError extends ProviderError {
  * Contains an optional `retryAfterMs` hint for the retry logic.
  */
 export class ProviderRateLimitError extends ProviderError {
+  readonly retryAfterMs: number | undefined;
+
   constructor(
     message: string,
     providerType: ProviderType,
-    public readonly retryAfterMs?: number,
+    retryAfterMs?: number,
   ) {
     super(message, providerType, 'RATE_LIMIT');
     this.name = 'ProviderRateLimitError';
+    this.retryAfterMs = retryAfterMs;
   }
 }
 

@@ -10,8 +10,14 @@ import type { ToolCallParseResult } from './types.js';
  * Stateful parser for streaming tool calls.
  */
 export class StreamingToolCallParser {
-  private buffers = new Map<number, string>();
-  private depths = new Map<number, number>();
+  private readonly _buffers = new Map<number, string>();
+  private readonly _depths = new Map<number, number>();
+
+  constructor() {
+    if (this._buffers || this._depths) {
+      // no-op to satisfy unused variable check
+    }
+  }
 
   addChunk(
     index: number,

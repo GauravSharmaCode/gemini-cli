@@ -20,9 +20,10 @@ export class CopilotContentConverter {
    * Translates Gemini GenerateContentParameters to Copilot JSON payload.
    */
   static toCopilotPayload(params: GenerateContentParameters): any {
-    const messages = params.contents.map((content) => ({
+    const contents = this.normalizeContents(params.contents);
+    const messages = contents.map((content) => ({
       role: this.mapRole(content.role || 'user'),
-      content: this.mapParts(content.parts),
+      content: this.mapParts(content.parts || []),
     }));
 
     // If there's a system instruction, prepend it
@@ -30,7 +31,7 @@ export class CopilotContentConverter {
       const systemContent = this.toContent(params.config.systemInstruction);
       messages.unshift({
         role: 'system',
-        content: this.mapParts(systemContent.parts),
+        content: this.mapParts(systemContent.parts || []),
       });
     }
 
@@ -70,17 +71,28 @@ export class CopilotContentConverter {
       .join('\n');
   }
 
-  private static toContent(instruction: string | Part | Part[] | Content): Content {
+  private static normalizeContents(contents: any): Content[] {
+    if (!contents) return [];
+    const arr = Array.isArray(contents) ? contents : [contents];
+    return arr.map((item) => {
+      if (typeof item === 'string') {
+        return { role: 'user', parts: [{ text: item }] };
+      }
+      return item as Content;
+    });
+  }
+
+  private static toContent(instruction: any): Content {
     if (typeof instruction === 'string') {
       return { role: 'system', parts: [{ text: instruction }] };
     }
     if (Array.isArray(instruction)) {
       return { role: 'system', parts: instruction };
     }
-    if ('parts' in instruction) {
-      return instruction;
+    if (instruction && typeof instruction === 'object' && 'parts' in instruction) {
+      return instruction as Content;
     }
-    return { role: 'system', parts: [instruction] };
+    return { role: 'system', parts: [instruction as Part] };
   }
 
   private static mapTools(tools: any[]): any[] {
@@ -108,20 +120,14 @@ export class CopilotContentConverter {
     const choice = chunk.choices?.[0];
     const delta = choice?.delta;
 
-    const candidate: Candidate = {
-      content: {
-        role: 'model',
-        parts: [],
-      },
-      finishReason: choice?.finish_reason,
-    };
+    const parts: Part[] = [];
 
     if (delta?.content) {
-      candidate.content.parts.push({ text: delta.content });
+      parts.push({ text: delta.content });
     }
 
     if (delta?.tool_calls) {
-      candidate.content.parts.push(
+      parts.push(
         ...delta.tool_calls.map((tc: any) => ({
           functionCall: {
             name: tc.function.name,
@@ -130,6 +136,14 @@ export class CopilotContentConverter {
         })),
       );
     }
+
+    const candidate: Candidate = {
+      content: {
+        role: 'model',
+        parts,
+      },
+      finishReason: choice?.finish_reason,
+    };
 
     return {
       candidates: [candidate],
@@ -140,6 +154,6 @@ export class CopilotContentConverter {
             totalTokenCount: chunk.usage.total_tokens,
           }
         : undefined,
-    };
+    } as GenerateContentResponse;
   }
 }

@@ -16,6 +16,7 @@ export interface OpenAIClientConfig extends ContentGeneratorConfig {
    * If omitted, auto-detection is attempted based on baseUrl.
    */
   providerType?: string;
+  model?: string;
 }
 
 /**
