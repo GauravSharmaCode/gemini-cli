@@ -36,6 +36,7 @@ const mockConfig = {
   getProxy: vi.fn().mockReturnValue(undefined),
   getUsageStatisticsEnabled: vi.fn().mockReturnValue(true),
   getClientName: vi.fn().mockReturnValue(undefined),
+  getProviderType: vi.fn().mockReturnValue('gemini'),
 } as unknown as Config;
 
 describe('getAuthTypeFromEnv', () => {

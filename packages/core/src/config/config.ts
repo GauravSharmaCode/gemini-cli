@@ -58,6 +58,7 @@ import {
 } from '../tools/shellBackgroundTools.js';
 import { GeminiClient } from '../core/client.js';
 import { BaseLlmClient } from '../core/baseLlmClient.js';
+import { ProviderType, inferProviderFromModel } from '../providers/index.js';
 import { LocalLiteRtLmClient } from '../core/localLiteRtLmClient.js';
 import type { HookDefinition, HookEventName } from '../hooks/types.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
@@ -534,6 +535,38 @@ export interface SandboxConfig {
   image?: string;
 }
 
+export interface ProviderConfig {
+  id: string;
+}
+
+export const OpenAIProviderConfigSchema = z.object({
+  id: z.string(),
+  apiKeyEnv: z.string().optional(),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
+});
+
+export interface OpenAIProviderConfig extends ProviderConfig {
+  apiKeyEnv?: string;
+  apiKey?: string;
+  baseUrl?: string;
+}
+
+export const CopilotProviderConfigSchema = z.object({
+  id: z.string(),
+});
+
+export interface CopilotProviderConfig extends ProviderConfig {}
+
+export const ProvidersConfigSchema = z
+  .object({
+    openai: z.array(OpenAIProviderConfigSchema).optional(),
+    copilot: z.array(CopilotProviderConfigSchema).optional(),
+  })
+  .optional();
+
+export type ProvidersConfig = z.infer<typeof ProvidersConfigSchema>;
+
 export const ConfigSchema = z.object({
   sandbox: z
     .object({
@@ -563,6 +596,8 @@ export const ConfigSchema = z.object({
       }
     })
     .optional(),
+  providers: ProvidersConfigSchema,
+  provider: z.nativeEnum(ProviderType).optional(),
 });
 
 /**
@@ -744,6 +779,8 @@ export interface ConfigParameters {
   };
   vertexAiRouting?: VertexAiRoutingConfig;
   logRagSnippets?: boolean;
+  providers?: ProvidersConfig;
+  provider?: ProviderType | string;
 }
 
 export class Config implements McpContext, AgentLoopContext {
@@ -956,6 +993,9 @@ export class Config implements McpContext, AgentLoopContext {
     overageStrategy: OverageStrategy;
   };
   private readonly vertexAiRouting: VertexAiRoutingConfig | undefined;
+
+  private readonly providers: ProvidersConfig | undefined;
+  private providerType: ProviderType | undefined;
 
   private readonly enableAgents: boolean;
   private agents: AgentSettings;
@@ -1387,6 +1427,9 @@ export class Config implements McpContext, AgentLoopContext {
     this.experiments = params.experiments;
     this.onModelChange = params.onModelChange;
     this.onReload = params.onReload;
+
+    this.providers = params.providers;
+    this.providerType = params.provider as ProviderType | undefined;
 
     this.billing = {
       overageStrategy: params.billing?.overageStrategy ?? 'ask',
@@ -1903,6 +1946,22 @@ export class Config implements McpContext, AgentLoopContext {
 
   getContentGeneratorConfig(): ContentGeneratorConfig {
     return this.contentGeneratorConfig;
+  }
+
+  getProviders(): ProvidersConfig | undefined {
+    return this.providers;
+  }
+
+  getProviderType(): ProviderType {
+    if (this.providerType) {
+      return this.providerType;
+    }
+    const inferred = inferProviderFromModel(this.getModel());
+    return inferred ?? ProviderType.GEMINI;
+  }
+
+  setProviderType(type: ProviderType): void {
+    this.providerType = type;
   }
 
   getModel(): string {

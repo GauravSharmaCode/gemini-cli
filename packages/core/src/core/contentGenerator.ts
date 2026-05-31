@@ -5,7 +5,6 @@
  */
 
 import {
-  GoogleGenAI,
   type CountTokensResponse,
   type GenerateContentResponse,
   type GenerateContentParameters,
@@ -13,23 +12,19 @@ import {
   type EmbedContentResponse,
   type EmbedContentParameters,
 } from '@google/genai';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as os from 'node:os';
-import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
-import { isCloudShell } from '../ide/detect-ide.js';
 import type { Config } from '../config/config.js';
 import { loadApiKey } from './apiKeyCredentialStorage.js';
 
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
-import { LoggingContentGenerator } from './loggingContentGenerator.js';
-import { InstallationManager } from '../utils/installationManager.js';
 import { FakeContentGenerator } from './fakeContentGenerator.js';
-import { parseCustomHeaders } from '../utils/customHeaderUtils.js';
-import { determineSurface } from '../utils/surface.js';
+import { LoggingContentGenerator } from './loggingContentGenerator.js';
 import { RecordingContentGenerator } from './recordingContentGenerator.js';
-import { getVersion, resolveModel } from '../../index.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
+
+import { defaultProviderRegistry, ProviderType } from '../providers/index.js';
+import { createGeminiContentGenerator } from '../providers/gemini/index.js';
+import { createOpenAIContentGenerator } from '../providers/openai/openaiContentGeneratorFactory.js';
+import { createCopilotContentGenerator } from '../providers/copilot/index.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -51,6 +46,9 @@ export interface ContentGenerator {
 
   embedContent(request: EmbedContentParameters): Promise<EmbedContentResponse>;
 
+  /** Optional provider-specific sync token estimation. */
+  estimateTokens?(text: string): number;
+
   userTier?: UserTierId;
 
   userTierName?: string;
@@ -65,6 +63,7 @@ export enum AuthType {
   LEGACY_CLOUD_SHELL = 'cloud-shell',
   COMPUTE_ADC = 'compute-default-credentials',
   GATEWAY = 'gateway',
+  GITHUB_COPILOT = 'github-copilot',
 }
 
 /**
@@ -97,6 +96,22 @@ export function getAuthTypeFromEnv(): AuthType | undefined {
   return undefined;
 }
 
+export function getProviderTypeForAuth(authType: AuthType): ProviderType {
+  switch (authType) {
+    case AuthType.GITHUB_COPILOT:
+      return ProviderType.COPILOT;
+    case AuthType.LOGIN_WITH_GOOGLE:
+    case AuthType.USE_GEMINI:
+    case AuthType.USE_VERTEX_AI:
+    case AuthType.LEGACY_CLOUD_SHELL:
+    case AuthType.COMPUTE_ADC:
+    case AuthType.GATEWAY:
+      return ProviderType.GEMINI;
+    default:
+      return ProviderType.GEMINI;
+  }
+}
+
 export type ContentGeneratorConfig = {
   apiKey?: string;
   vertexai?: boolean;
@@ -113,18 +128,6 @@ export type VertexAiSharedRequestType = 'priority' | 'flex';
 export interface VertexAiRoutingConfig {
   requestType?: VertexAiRequestType;
   sharedRequestType?: VertexAiSharedRequestType;
-}
-
-const VERTEX_AI_REQUEST_TYPE_HEADER = 'X-Vertex-AI-LLM-Request-Type';
-const VERTEX_AI_SHARED_REQUEST_TYPE_HEADER =
-  'X-Vertex-AI-LLM-Shared-Request-Type';
-
-function validateBaseUrl(baseUrl: string): void {
-  try {
-    new URL(baseUrl);
-  } catch {
-    throw new Error(`Invalid custom base URL: ${baseUrl}`);
-  }
 }
 
 export async function createContentGeneratorConfig(
@@ -193,6 +196,24 @@ export async function createContentGeneratorConfig(
   return contentGeneratorConfig;
 }
 
+// Pre-register Gemini provider
+defaultProviderRegistry.register(
+  ProviderType.GEMINI,
+  createGeminiContentGenerator,
+);
+
+// Pre-register OpenAI provider
+defaultProviderRegistry.register(
+  ProviderType.OPENAI,
+  createOpenAIContentGenerator,
+);
+
+// Pre-register Copilot provider
+defaultProviderRegistry.register(
+  ProviderType.COPILOT,
+  createCopilotContentGenerator,
+);
+
 export async function createContentGenerator(
   config: ContentGeneratorConfig,
   gcConfig: Config,
@@ -212,172 +233,16 @@ export async function createContentGenerator(
       );
       return new LoggingContentGenerator(fakeGenerator, gcConfig);
     }
-    const version = await getVersion();
-    const model = resolveModel(
-      gcConfig.getModel(),
-      config.authType === AuthType.USE_GEMINI ||
-        config.authType === AuthType.USE_VERTEX_AI ||
-        ((await gcConfig.getGemini31Launched?.()) ?? false),
-      false,
-      gcConfig.getHasAccessToPreviewModel?.() ?? true,
+
+    const providerType =
+      typeof gcConfig?.getProviderType === 'function'
+        ? gcConfig.getProviderType()
+        : ProviderType.GEMINI;
+    return defaultProviderRegistry.create(
+      providerType,
+      config,
       gcConfig,
-    );
-    const customHeadersEnv =
-      process.env['GEMINI_CLI_CUSTOM_HEADERS'] || undefined;
-    const clientName = gcConfig.getClientName();
-    const surface = determineSurface();
-
-    let userAgent: string;
-    // Use unified format for VS Code traffic.
-    // Note: We don't automatically assume a2a-server is VS Code,
-    // as it could be used by other clients unless the surface explicitly says 'vscode'.
-    if (clientName === 'acp-vscode' || surface === 'vscode') {
-      const osTypeMap: Record<string, string> = {
-        darwin: 'macOS',
-        win32: 'Windows',
-        linux: 'Linux',
-      };
-      const osType = osTypeMap[process.platform] || process.platform;
-      const osVersion = os.release();
-      const arch = process.arch;
-
-      const vscodeVersion = process.env['TERM_PROGRAM_VERSION'] || 'unknown';
-      let hostPath = `VSCode/${vscodeVersion}`;
-      if (isCloudShell()) {
-        const cloudShellVersion =
-          process.env['CLOUD_SHELL_VERSION'] || 'unknown';
-        hostPath += ` > CloudShell/${cloudShellVersion}`;
-      }
-
-      userAgent = `CloudCodeVSCode/${version} (aidev_client; os_type=${osType}; os_version=${osVersion}; arch=${arch}; host_path=${hostPath}; proxy_client=geminicli)`;
-    } else {
-      const userAgentPrefix = clientName
-        ? `GeminiCLI-${clientName}`
-        : 'GeminiCLI';
-      userAgent = `${userAgentPrefix}/${version}/${model} (${process.platform}; ${process.arch}; ${surface})`;
-    }
-
-    const customHeadersMap = parseCustomHeaders(customHeadersEnv);
-    const apiKeyAuthMechanism =
-      process.env['GEMINI_API_KEY_AUTH_MECHANISM'] || 'x-goog-api-key';
-    const apiVersionEnv = process.env['GOOGLE_GENAI_API_VERSION'];
-
-    const baseHeaders: Record<string, string> = {
-      'User-Agent': userAgent,
-      ...customHeadersMap,
-    };
-
-    if (
-      apiKeyAuthMechanism === 'bearer' &&
-      (config.authType === AuthType.USE_GEMINI ||
-        config.authType === AuthType.USE_VERTEX_AI) &&
-      config.apiKey
-    ) {
-      baseHeaders['Authorization'] = `Bearer ${config.apiKey}`;
-    }
-    if (
-      config.authType === AuthType.LOGIN_WITH_GOOGLE ||
-      config.authType === AuthType.COMPUTE_ADC
-    ) {
-      const httpOptions = { headers: baseHeaders };
-      return new LoggingContentGenerator(
-        await createCodeAssistContentGenerator(
-          httpOptions,
-          config.authType,
-          gcConfig,
-          sessionId,
-        ),
-        gcConfig,
-      );
-    }
-
-    if (
-      config.authType === AuthType.USE_GEMINI ||
-      config.authType === AuthType.USE_VERTEX_AI ||
-      config.authType === AuthType.GATEWAY
-    ) {
-      let headers: Record<string, string> = { ...baseHeaders };
-      if (config.customHeaders) {
-        headers = { ...headers, ...config.customHeaders };
-      }
-      if (
-        config.authType === AuthType.USE_VERTEX_AI &&
-        config.vertexAiRouting
-      ) {
-        const { requestType, sharedRequestType } = config.vertexAiRouting;
-        headers = {
-          ...headers,
-          ...(requestType
-            ? { [VERTEX_AI_REQUEST_TYPE_HEADER]: requestType }
-            : {}),
-          ...(sharedRequestType
-            ? { [VERTEX_AI_SHARED_REQUEST_TYPE_HEADER]: sharedRequestType }
-            : {}),
-        };
-      }
-      if (gcConfig?.getUsageStatisticsEnabled()) {
-        const installationManager = new InstallationManager();
-        const installationId = installationManager.getInstallationId();
-        headers = {
-          ...headers,
-          'x-gemini-api-privileged-user-id': `${installationId}`,
-        };
-      }
-      if (config.authType === AuthType.GATEWAY && config.apiKey === '') {
-        headers['x-goog-api-key'] = '';
-      }
-      let baseUrl = config.baseUrl;
-      if (!baseUrl) {
-        const envBaseUrl =
-          config.authType === AuthType.USE_VERTEX_AI
-            ? process.env['GOOGLE_VERTEX_BASE_URL']
-            : process.env['GOOGLE_GEMINI_BASE_URL'];
-        if (envBaseUrl) {
-          validateBaseUrl(envBaseUrl);
-          baseUrl = envBaseUrl;
-        }
-      } else {
-        validateBaseUrl(baseUrl);
-      }
-
-      const httpOptions: {
-        baseUrl?: string;
-        headers: Record<string, string>;
-      } = { headers };
-
-      if (baseUrl) {
-        httpOptions.baseUrl = baseUrl;
-      }
-
-      const proxyUrl = config.proxy?.trim();
-      const proxyAgent = proxyUrl
-        ? baseUrl?.startsWith('http://')
-          ? new HttpProxyAgent(proxyUrl)
-          : new HttpsProxyAgent(proxyUrl)
-        : undefined;
-
-      const googleGenAI = new GoogleGenAI({
-        apiKey:
-          config.authType === AuthType.GATEWAY
-            ? config.apiKey
-            : config.apiKey === ''
-              ? undefined
-              : config.apiKey,
-        vertexai: config.vertexai ?? config.authType === AuthType.USE_VERTEX_AI,
-        httpOptions,
-        ...(apiVersionEnv && { apiVersion: apiVersionEnv }),
-        ...(proxyAgent && {
-          googleAuthOptions: {
-            clientOptions: {
-              transporterOptions: { agent: proxyAgent },
-            },
-          },
-        }),
-      });
-      return new LoggingContentGenerator(googleGenAI.models, gcConfig);
-    }
-    throw new Error(
-      `Error creating contentGenerator: Unsupported authType: ${config.authType}`,
+      sessionId,
     );
   })();
 
