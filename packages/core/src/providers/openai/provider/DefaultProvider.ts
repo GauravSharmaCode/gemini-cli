@@ -5,52 +5,42 @@
  */
 
 import OpenAI from 'openai';
-import type { OpenAIClientConfig } from '../types.js';
+import type { ContentGeneratorConfig } from '../../../core/contentGenerator.js';
 import type { OpenAICompatibleProvider } from './OpenAIProvider.js';
 import { DEFAULT_TIMEOUT, DEFAULT_MAX_RETRIES } from '../constants.js';
 
 /**
  * Default provider for standard OpenAI-compatible APIs.
- * Handles OpenAI, Fireworks, Ollama, vLLM, and other generic endpoints.
  */
 export class DefaultOpenAIProvider implements OpenAICompatibleProvider {
-  protected config: OpenAIClientConfig;
+  protected config: ContentGeneratorConfig;
 
-  constructor(config: OpenAIClientConfig) {
+  constructor(config: ContentGeneratorConfig) {
     this.config = config;
   }
 
-  /**
-   * Static detection: returns true if this provider should be used.
-   * For the default provider, this is always a fallback (return true).
-   */
-  static isDefaultProvider(config: OpenAIClientConfig): boolean {
-    // Default provider is the fallback — always available
+  static isDefaultProvider(config: ContentGeneratorConfig): boolean {
     return true;
   }
 
   buildHeaders(): Record<string, string | undefined> {
-    // TODO(Phase 1.5): Implement header building with OmniCLI User-Agent
-    return {
-      'User-Agent': 'OmniCLI/unknown',
-    };
+    // TODO(Phase 1.5): Implement header building
+    return { 'User-Agent': 'OmniCLI/unknown' };
   }
 
   buildClient(): OpenAI {
-    // TODO(Phase 1.5): Implement OpenAI SDK client construction with proxy support
+    // TODO(Phase 1.5): Implement OpenAI SDK client construction
     return new OpenAI({
       apiKey: this.config.apiKey,
       baseURL: this.config.baseUrl,
-      timeout: this.config.timeout ?? DEFAULT_TIMEOUT,
-      maxRetries: this.config.maxRetries ?? DEFAULT_MAX_RETRIES,
+      timeout: (this.config as any)?.timeout ?? DEFAULT_TIMEOUT,
+      maxRetries: (this.config as any)?.maxRetries ?? DEFAULT_MAX_RETRIES,
       defaultHeaders: this.buildHeaders(),
     });
   }
 
-  buildRequest(
-    request: any, // OpenAI.Chat.ChatCompletionCreateParams
-  ): any {
-    // TODO(Phase 1.5): Implement request mutation (output token limits, extra_body, etc.)
+  buildRequest(request: any): any {
+    // TODO(Phase 1.5): Implement request mutation
     return request;
   }
 }
