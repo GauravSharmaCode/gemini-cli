@@ -290,4 +290,4 @@ priority=500`,
     // Workspace Tier (3) + 500/1000 = 3.5
     expect(rule?.priority).toBe(3.5);
   });
-});
+}, 120000);

@@ -23,8 +23,10 @@ describe('Background Tools Integration', () => {
   let listTool: ListBackgroundProcessesTool;
   let readTool: ReadBackgroundOutputTool;
   let tempRootDir: string;
+  let activePid: number | undefined;
 
   beforeEach(() => {
+    activePid = undefined;
     vi.clearAllMocks();
     const mockContext = {
       config: { getSessionId: () => 'default' },
@@ -34,12 +36,19 @@ describe('Background Tools Integration', () => {
 
     tempRootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shell-bg-test-'));
 
-    // Clear history to avoid state leakage from previous runs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ShellExecutionService as any).backgroundProcessHistory.clear();
+    // Clear internal state to ensure test isolation
+    ShellExecutionService.resetForTest();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    if (activePid !== undefined) {
+      try {
+        await ShellExecutionService.kill(activePid);
+      } catch {
+        // Ignore errors if process is already dead or not found
+      }
+    }
+    ShellExecutionService.resetForTest();
     if (tempRootDir && fs.existsSync(tempRootDir)) {
       fs.rmSync(tempRootDir, { recursive: true, force: true });
     }
@@ -81,6 +90,7 @@ describe('Background Tools Integration', () => {
     if (pid === undefined) {
       throw new Error('pid is undefined');
     }
+    activePid = pid;
     expect(pid).toBeGreaterThan(0);
 
     // 2. Simulate model triggering background operations
