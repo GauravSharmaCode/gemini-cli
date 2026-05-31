@@ -41,6 +41,15 @@ export class CopilotContentGenerator implements ContentGenerator {
       } else {
         // Merge chunks into a single response
         if (chunk.candidates?.[0]?.content?.parts) {
+          if (!finalResponse.candidates) {
+            finalResponse.candidates = [];
+          }
+          if (!finalResponse.candidates[0]) {
+            finalResponse.candidates[0] = { content: { role: 'model', parts: [] } };
+          }
+          if (!finalResponse.candidates[0].content) {
+            finalResponse.candidates[0].content = { role: 'model', parts: [] };
+          }
           if (!finalResponse.candidates[0].content.parts) {
             finalResponse.candidates[0].content.parts = [];
           }
@@ -52,7 +61,9 @@ export class CopilotContentGenerator implements ContentGenerator {
           finalResponse.usageMetadata = chunk.usageMetadata;
         }
         if (chunk.candidates?.[0]?.finishReason) {
-          finalResponse.candidates[0].finishReason = chunk.candidates[0].finishReason;
+          if (finalResponse.candidates?.[0]) {
+            finalResponse.candidates[0].finishReason = chunk.candidates[0].finishReason;
+          }
         }
       }
     }
@@ -63,7 +74,15 @@ export class CopilotContentGenerator implements ContentGenerator {
     return finalResponse;
   }
 
-  async *generateContentStream(
+  async generateContentStream(
+    request: GenerateContentParameters,
+    userPromptId: string,
+    role: LlmRole,
+  ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    return this.generateContentStreamInternal(request, userPromptId, role);
+  }
+
+  private async *generateContentStreamInternal(
     request: GenerateContentParameters,
     _userPromptId: string,
     _role: LlmRole,
