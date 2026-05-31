@@ -75,6 +75,10 @@ export class Storage {
     return path.join(Storage.getGlobalGeminiDir(), 'a2a-oauth-tokens.json');
   }
 
+  static getCopilotTokenPath(): string {
+    return path.join(Storage.getGlobalGeminiDir(), 'copilot-tokens.json');
+  }
+
   static getGlobalSettingsPath(): string {
     return path.join(Storage.getGlobalGeminiDir(), 'settings.json');
   }

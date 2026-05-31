@@ -19,6 +19,7 @@ import {
   type ConfigParameters,
   type SandboxConfig,
 } from './config.js';
+import { ProviderType } from '../providers/index.js';
 import { createMockSandboxConfig } from '@google/gemini-cli-test-utils';
 import { DEFAULT_MAX_ATTEMPTS } from '../utils/retry.js';
 import { ExperimentFlags } from '../code_assist/experiments/flagNames.js';
@@ -321,6 +322,44 @@ describe('Server Config (config.ts)', () => {
         maxAttempts: 20,
       });
       expect(config.getMaxAttempts()).toBe(DEFAULT_MAX_ATTEMPTS);
+    });
+  });
+
+  describe('Providers', () => {
+    it('should store providers correctly', () => {
+      const providers = {
+        openai: [{ id: 'gpt-4o', apiKeyEnv: 'OPENAI_API_KEY' }],
+        copilot: [{ id: 'copilot-chat' }],
+      };
+      const config = new Config({
+        ...baseParams,
+        providers,
+      });
+
+      expect(config.getProviders()).toEqual(providers);
+    });
+
+    it('should default providers to undefined if not provided', () => {
+      const config = new Config(baseParams);
+      expect(config.getProviders()).toBeUndefined();
+    });
+
+    it('should support legacy gemini-api-key auth without providers block', async () => {
+      const config = new Config(baseParams);
+      const authType = AuthType.USE_GEMINI;
+      const mockContentConfig = {
+        apiKey: 'test-key',
+        authType,
+      };
+
+      vi.mocked(createContentGeneratorConfig).mockResolvedValue(
+        mockContentConfig,
+      );
+
+      await config.refreshAuth(authType);
+
+      expect(config.getContentGeneratorConfig()).toEqual(mockContentConfig);
+      expect(config.getProviders()).toBeUndefined();
     });
   });
 
@@ -4344,5 +4383,34 @@ describe('ADKSettings', () => {
     };
     const config = new Config(params);
     expect(config.getAgentSessionNoninteractiveEnabled()).toBe(true);
+  });
+});
+
+describe('Provider config', () => {
+  const baseParams: ConfigParameters = {
+    sessionId: 'test',
+    targetDir: '.',
+    debugMode: false,
+    model: 'gemini-pro',
+    cwd: '.',
+  };
+
+  it('should default getProviderType() based on model inference', () => {
+    const config = new Config({ ...baseParams, model: 'gemini-2.5-pro' });
+    expect(config.getProviderType()).toBe(ProviderType.GEMINI);
+
+    const openaiConfig = new Config({ ...baseParams, model: 'gpt-4o' });
+    expect(openaiConfig.getProviderType()).toBe(ProviderType.OPENAI);
+  });
+
+  it('should return explicitly set provider type over model inference', () => {
+    const config = new Config({ ...baseParams, model: 'gpt-4o', provider: 'gemini' });
+    expect(config.getProviderType()).toBe(ProviderType.GEMINI);
+  });
+
+  it('should allow setting provider type dynamically', () => {
+    const config = new Config(baseParams);
+    config.setProviderType(ProviderType.OPENAI);
+    expect(config.getProviderType()).toBe(ProviderType.OPENAI);
   });
 });
