@@ -23,6 +23,8 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 
 import { defaultProviderRegistry, ProviderType } from '../providers/index.js';
 import { createGeminiContentGenerator } from '../providers/gemini/index.js';
+import { createOpenAIContentGenerator } from '../providers/openai/openaiContentGeneratorFactory.js';
+import { createCopilotContentGenerator } from '../providers/copilot/index.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -198,6 +200,18 @@ export async function createContentGeneratorConfig(
 defaultProviderRegistry.register(
   ProviderType.GEMINI,
   createGeminiContentGenerator,
+);
+
+// Pre-register OpenAI provider
+defaultProviderRegistry.register(
+  ProviderType.OPENAI,
+  createOpenAIContentGenerator,
+);
+
+// Pre-register Copilot provider
+defaultProviderRegistry.register(
+  ProviderType.COPILOT,
+  createCopilotContentGenerator,
 );
 
 export async function createContentGenerator(
