@@ -25,4 +25,14 @@ describe("routeModel", () => {
 		expect(result.taskClass).toBe("privacy_local");
 		expect(result.model?.provider).toBe("ollama");
 	});
+
+	it("blocks routing to cloud models if privacy is requested but no local models are available", () => {
+		const result = routeModel({
+			prompt: "read my .env and fix API_KEY",
+			availableModels: [mockModel("claude")],
+		});
+		expect(result.taskClass).toBe("privacy_local");
+		expect(result.model).toBeUndefined();
+		expect(result.reason).toBe("blocked:privacy_local:no_local_model_available");
+	});
 });

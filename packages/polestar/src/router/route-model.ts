@@ -10,11 +10,16 @@ function isLocalModel(model: { provider: string; id: string }): boolean {
 function pickByClass(
 	models: RouteRequest["availableModels"],
 	taskClass: ReturnType<typeof classifyTask>,
-): RouteResult["model"] {
+): RouteResult["model"] | null {
 	if (models.length === 0) return undefined;
 
 	if (taskClass === "privacy_local") {
-		return models.find(isLocalModel) ?? models[0];
+		const local = models.find(isLocalModel);
+		if (local) {
+			return local;
+		}
+		// Hard block: do not return a cloud model if privacy_local is requested and no local model is available
+		return null;
 	}
 
 	if (taskClass === "architecture") {
@@ -34,7 +39,17 @@ function pickByClass(
 
 export function routeModel(request: RouteRequest): RouteResult {
 	const taskClass = classifyTask(request.prompt, request.preferLocal);
-	const model = pickByClass(request.availableModels, taskClass) ?? request.currentModel;
+	const modelResult = pickByClass(request.availableModels, taskClass);
+
+	if (modelResult === null) {
+		return {
+			taskClass,
+			model: undefined,
+			reason: `blocked:privacy_local:no_local_model_available`,
+		};
+	}
+
+	const model = modelResult ?? request.currentModel;
 	return {
 		taskClass,
 		model,

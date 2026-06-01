@@ -16,6 +16,29 @@ export const polestarCoreExtension: ExtensionFactory = (pi: ExtensionAPI) => {
 		return { stdout: result.stdout, code: result.code };
 	});
 
+	pi.on("resources_discover", async (event) => {
+		const { existsSync, readdirSync } = await import("node:fs");
+		const { join } = await import("node:path");
+		const skillsDir = join(event.cwd, ".polestar", "skills");
+		const skillPaths: string[] = [];
+		if (existsSync(skillsDir)) {
+			try {
+				const files = readdirSync(skillsDir, { withFileTypes: true });
+				for (const file of files) {
+					if (file.isDirectory()) {
+						const skillMd = join(skillsDir, file.name, "SKILL.md");
+						if (existsSync(skillMd)) {
+							skillPaths.push(skillMd);
+						}
+					}
+				}
+			} catch {
+				// Ignore directory read errors
+			}
+		}
+		return { skillPaths };
+	});
+
 	pi.on("before_agent_start", async (event, ctx) => {
 		const systemPrompt = composeSystemPrompt(event.systemPrompt);
 		const memoryMd = await memory.readMemoryFile();
@@ -42,6 +65,11 @@ export const polestarCoreExtension: ExtensionFactory = (pi: ExtensionAPI) => {
 			});
 			if (route.model) {
 				await pi.setModel(route.model);
+			} else if (route.taskClass === "privacy_local") {
+				// We have a privacy_local task but no local model was found. Stop execution to prevent data leakage.
+				throw new Error(
+					"Security Block: This task involves sensitive/privacy data, but no local model (Ollama/local) is available to handle it safely.",
+				);
 			}
 		}
 
@@ -113,7 +141,15 @@ export const polestarCoreExtension: ExtensionFactory = (pi: ExtensionAPI) => {
 				body: params.body,
 				skillsDir: `${ctx.cwd}/.polestar/skills`,
 			});
-			return { content: [{ type: "text", text: `Created ${path}` }], details: { path } };
+			// Trigger a reload of resources so the newly scaffolded skill is registered and loaded by the harness
+			if ("reload" in ctx && typeof ctx.reload === "function") {
+				try {
+					await ctx.reload();
+				} catch {
+					// Ignore reload errors during tool execution
+				}
+			}
+			return { content: [{ type: "text", text: `Created and loaded ${path}` }], details: { path } };
 		},
 	});
 
