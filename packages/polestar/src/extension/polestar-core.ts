@@ -1,3 +1,4 @@
+import { Container, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { ExtensionAPI, ExtensionFactory } from "../../../coding-agent/src/core/extensions/types.ts";
 import { connectMcpBridge, disconnectMcpBridge, clients as mcpClients } from "../mcp/bridge.ts";
@@ -20,6 +21,7 @@ import { scaffoldSkill } from "../tools/self-config.ts";
 import { todoWriteTool } from "../tools/todo-write.ts";
 import { webFetchTool } from "../tools/webfetch.ts";
 import { webSearchTool } from "../tools/websearch.ts";
+import { shortAsciiLogoCompactText } from "../ui/branding.ts";
 
 const MEMORY_SEARCH_TIMEOUT_MS = 1500;
 
@@ -69,6 +71,18 @@ export const polestarCoreExtension: ExtensionFactory = (pi: ExtensionAPI) => {
 
 		if (ctx.ui) {
 			ctx.ui.setStatus("mode", "✎ write");
+
+			// Set branding header
+			ctx.ui.setHeader((_tui, theme) => {
+				const container = new Container();
+				container.addChild(new Spacer(1));
+				container.addChild(new Text(theme.fg("accent", shortAsciiLogoCompactText), 1, 0));
+				container.addChild(new Spacer(1));
+				const logo = theme.bold(theme.fg("accent", "PoleStar-X")) + theme.fg("dim", " v0.1.0");
+				container.addChild(new Text(`${logo} - Sovereign fork of pi`, 1, 0));
+				container.addChild(new Spacer(1));
+				return container;
+			});
 		}
 
 		// Connect stdio MCP servers configured in mcp.json
