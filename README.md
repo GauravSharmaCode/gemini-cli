@@ -1,3 +1,9 @@
+# PoleStar-X
+
+**Sovereign fork of pi** — a self-configuring coding agent you own outright. See [docs/POLESTAR.md](docs/POLESTAR.md), [NOTICE.md](NOTICE.md), and [docs/superpowers/specs/2026-05-31-polestar-x-design.md](docs/superpowers/specs/2026-05-31-polestar-x-design.md). Run: `npm run polestar`.
+
+---
+
 <p align="center">
   <a href="https://pi.dev">
     <img alt="pi logo" src="https://pi.dev/logo-auto.svg" width="128">

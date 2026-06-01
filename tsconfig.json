@@ -21,5 +21,9 @@
 		}
 	},
 	"include": ["packages/*/src/**/*", "packages/*/test/**/*", "packages/coding-agent/examples/**/*"],
-	"exclude": ["**/dist/**"]
+	"exclude": [
+		"**/dist/**",
+		"packages/polestar/src/cli.ts",
+		"packages/polestar/src/extension/**"
+	]
 }

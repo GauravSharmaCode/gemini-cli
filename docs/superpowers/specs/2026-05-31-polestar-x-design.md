@@ -23,13 +23,15 @@ Where enterprise tools are polished but closed and rigid, and pi is powerful but
 
 ## 2. Positioning
 
-| Axis | Rigid enterprise tools (Cursor / Antigravity / Claude Code) | Barebones pi | **PoleStar-X** |
-| --- | --- | --- | --- |
-| Ownership | Closed / revocable | Open (MIT) | **Owned fork (un-revocable)** |
-| Setup effort | Low, but locked-in | High, fully manual | **Low, self-configuring** |
-| Model choice | Curated, opaque | Flat list of 40+, manual pick every time | **Smart routing, automatic** |
-| Memory | Session or vendor-cloud | Session only | **First-class cross-session (pi-memory)** |
-| Extensibility | Vendor-gated | Powerful but manual | **Agent extends itself** |
+
+| Axis          | Rigid enterprise tools (Cursor / Antigravity / Claude Code) | Barebones pi                             | **PoleStar-X**                            |
+| ------------- | ----------------------------------------------------------- | ---------------------------------------- | ----------------------------------------- |
+| Ownership     | Closed / revocable                                          | Open (MIT)                               | **Owned fork (un-revocable)**             |
+| Setup effort  | Low, but locked-in                                          | High, fully manual                       | **Low, self-configuring**                 |
+| Model choice  | Curated, opaque                                             | Flat list of 40+, manual pick every time | **Smart routing, automatic**              |
+| Memory        | Session or vendor-cloud                                     | Session only                             | **First-class cross-session (pi-memory)** |
+| Extensibility | Vendor-gated                                                | Powerful but manual                      | **Agent extends itself**                  |
+
 
 ---
 
@@ -54,14 +56,12 @@ PoleStar-X is a **hard fork of pi** — its own repository, rebranded, with pi's
 
 qwen-code copied gemini-cli's core verbatim and inherited its weaknesses (notably the `checkNextSpeaker` continuation tax). **PoleStar-X must never do this.** Anything we take is taken to be *improved*. Forking the harness means we may rework its internals freely — we are not bound to upstream decisions.
 
-### 3.4 Attribution, licensing & trademark caution
+### 3.4 Attribution & licensing
 
 - Preserve pi's `LICENSE` (MIT) and original copyright (Mario Zechner) in the repo.
-- Maintain a top-level **`NOTICE.md`** ("Attribution Ledger", §12) listing every project we fork from or adopt code from, with links and licenses.
-- **Norm we follow (validated against pi itself, which credits no one):** *inspiration and patterns* are taken freely; *copied source code* keeps its license and is listed in `NOTICE.md`. We choose to be generous with attribution in the README even for inspiration.
-- **Code only from permissive open sources.** We take actual *code* only from permissively-licensed open projects — pi (MIT) and, if useful, gemini-cli (Apache-2.0) — with attribution. We take *UX conventions* (not code/text) as inspiration from the broader ecosystem.
-- **Never copy from proprietary tools.** Claude Code is proprietary; we take **nothing** from it — no prompt text, no code. Any UX resemblance is only to common ecosystem conventions (§5), not to Claude Code specifically.
-- **Trademark & naming caution.** Adopt *patterns*, never *marks*. Avoid any name, mascot, or string resembling another product. Cautionary tale: **OpenClaw was forced to rename from "Clawdbot"** after Anthropic's trademark complaint over phonetic/visual similarity to "Claude" (and its "Clawd" mascot). PoleStar-X's branding (owned by Gaurav) is independent and must not echo Claude/Anthropic or any other vendor's name or marks.
+- Maintain a top-level `**NOTICE.md`** ("Attribution Ledger", §12) listing every project we fork from or adopt code/ideas from, with links and licenses.
+- **Norm we follow (validated against pi itself, which credits no one):** *inspiration and patterns* are taken freely and need no credit; *copied source code* keeps its license and is listed in `NOTICE.md`. We choose to be generous with attribution in the README even for inspiration, as a matter of principle.
+- **Multi-source, no single lean.** We take from pi (harness), Claude Code (prompts, commands, UI patterns), gemini-cli / opencode / codex (specific improvements) — always improving, never parasitic on any single core.
 
 ---
 
@@ -70,15 +70,15 @@ qwen-code copied gemini-cli's core verbatim and inherited its weaknesses (notabl
 ```
 polestar-x/                       # the fork: pi's harness, rebranded + improved
   LICENSE                         # pi's MIT preserved + PoleStar-X copyright
-  NOTICE.md                       # attribution ledger (pi, gemini-cli, ...)
+  NOTICE.md                       # attribution ledger (pi, Claude Code, gemini-cli, opencode, ...)
   README.md                       # branding (owned by Gaurav) + attributions
   packages/
     harness/                      # forked + improved pi-agent-core (the solid harness)
     ai/                           # forked pi-ai (providers / OAuth) — owned
     polestar/                     # NEW product layer (the differentiation)
-      prompts/                    # eager + guardrailed system prompt (written fresh)
-      commands/                   # /init, plugins, settings + new commands — common pattern, fresh code
-      ui/                         # UI layer (common ecosystem shape; fresh code)
+      prompts/                    # eager + guardrailed system prompt + Claude-Code-adopted prompts
+      commands/                   # slash commands (Claude-Code-adopted + new)
+      ui/                         # UI layer (common across agents; Claude-Code-adopted)
       router/                     # smart model routing (kills model-choice hell)
       tools/                      # opinionated tool suite + self-config tools
       self-heal/                  # test / diagnose / retry loop
@@ -92,50 +92,58 @@ polestar-x/                       # the fork: pi's harness, rebranded + improved
 
 ---
 
-## 5. UX conventions: common ecosystem patterns (inspiration only)
+## 5. Adopted from Claude Code: prompts, commands, UI layer
 
-The current generation of coding agents — Claude Code, OpenCode, Gemini CLI, and others — has converged on the **same de-facto UX conventions**: an `/init`-style bootstrap command, a plugins/extensions model, a `settings`/config file, slash commands, and a common terminal-UI shape. These are ecosystem standards, not the property of any single tool.
+Per decision, PoleStar-X adopts Claude Code's **prompts, commands, and UI layer** as the basis for its experience layer (the UI layer is largely common across all these agents, so adoption is low-risk and high-value).
 
-PoleStar-X adopts these **conventions** (the shapes users already expect), **written entirely fresh in our own code**:
-- **Commands:** an `/init`, plugin/extension management, settings/config, and a slash-command surface — modeled on the common pattern, extended with PoleStar-specific commands (routing, memory, self-config).
-- **UI layer:** the common terminal-UI shape these tools share, implemented on our forked Ink/TUI stack.
-- **Prompts:** the shared best-practice shape (concise, eager-but-disciplined, validate-before-completion) — written fresh.
-
-**Hard rule (legal):** we take *inspiration from patterns*, never code or text from proprietary tools. **We do not copy from Claude Code** (proprietary; trademark-sensitive — see §3.4). Actual code is taken only from permissively-licensed open projects (pi, gemini-cli) with attribution in `NOTICE.md`.
+- **Prompts:** Claude Code's system-prompt structure and tone (concise, eager-but-disciplined, high-signal, validate-before-completion) form the base of the PoleStar eager guardrailed prompt (§6.1, §8).
+- **Commands:** Claude Code's slash-command surface and conventions seed `packages/polestar/commands/`, extended with PoleStar-specific commands (e.g. routing, memory, self-config).
+- **UI layer:** Claude Code's terminal UX patterns inform `packages/polestar/ui/`, rendered on the forked Ink/TUI stack.
+- **Attribution:** all adopted material is listed in `NOTICE.md`; copied text/code keeps its license. We improve, not transcribe.
 
 ---
 
 ## 6. Product Differentiators (the PoleStar layer)
 
 ### 6.1 Eager guardrailed system prompt
-A synthesized, opinionated system prompt (written fresh from common best-practice patterns; §8) that makes the agent **eager and proactive but disciplined**, fronted by hard safety rails (§7). Editable/forkable `system.md`. Injected at the start of each turn through the harness's `before_agent_start` hook, prepended to preserve dynamic sections (tools, skills, project context).
+
+A synthesized, opinionated system prompt (base adopted from Claude Code; §8) that makes the agent **eager and proactive but disciplined**, fronted by hard safety rails (§7). Editable/forkable `system.md`. Injected at the start of each turn through the harness's `before_agent_start` hook, prepended to preserve dynamic sections (tools, skills, project context).
 
 ### 6.2 Smart model router (kills model-choice hell)
+
 The core fix for "provider hell." Today pi exposes a flat list of 40+ models and forces a manual pick every turn. PoleStar-X **routes automatically**:
+
 - Classify each task (heuristics first; optionally a fast/cheap model call) by difficulty, privacy sensitivity, and cost tolerance.
 - Map to the right model: strong-reasoning model for planning/architecture, fast/cheap model for simple edits, **local model for anything privacy-sensitive** (secrets, `.env`), etc.
 - **Fallback chains** on rate-limit/error so a dying or throttled provider never blocks work — directly embodying sovereignty.
 - Implemented over the forked harness via per-turn model selection; ships with opinionated default routing rules that the user can override.
 
 ### 6.3 Self-configuration engine
+
 The literal "configures itself" capability:
+
 - **Skills:** the agent can scaffold a new `SKILL.md`, register it, and use it within the same session.
 - **Rules:** the agent maintains its own `AGENTS.md` / `RULES.md` (already ingested by the harness's context loader).
 - **Tools:** the agent can enable/disable its own active tools.
 - Driven by an opinionated tool suite plus the eager prompt that instructs the agent to extend itself when a capability is missing.
 
 ### 6.4 First-class pi-memory
+
 Cross-session work-journal + semantic retrieval, **plugged in** from the existing project (`github.com/GauravSharmaCode/pi-memory`) — not rebuilt:
+
 - **Pre-turn retrieval:** silent semantic search injected as a "Historical Memory" block, under a hard timeout so it can never add latency tax.
 - **MEMORY.md ingestion:** curated long-term guidelines injected into the system prompt.
 - **Auto-logging:** structured logging of completed work (opt-in; tools + `/remember` are the primary path to avoid noise).
 - Transport: CLI or MCP, behind one swappable backend interface.
 
 ### 6.5 Self-healing dev/test loop
+
 Woven through execution: on lint/type/test failure, the agent **diagnoses root cause and retries** rather than blindly pivoting (Developer↔Tester loop). Includes the self-healing path for generated provider adapters (compile/typecheck → iterate on errors until green).
 
 ### 6.6 Orchestration, artifacts & worktree isolation
+
 The premium layer (later phases):
+
 - **Multi-agent orchestration:** spawn/route subagents for parallel/background work.
 - **Persistent artifacts:** split-screen Ink panel rendering live-updating markdown artifacts separate from transient chat.
 - **Strict git worktree isolation:** automated execution runs in an isolated worktree sandbox; nothing untested touches the primary workspace.
@@ -145,6 +153,7 @@ The premium layer (later phases):
 ## 7. Safety & Guardrails (Zero-Blast-Radius standard)
 
 Eagerness is always fronted by hard rails:
+
 - **Destructive-action consent:** explicit interactive confirmation required before destructive filesystem ops (`rm -rf`, wiping dirs), destructive git (`push -f`, `reset --hard`, deleting remote branches), or service/DB purges.
 - **Worktree containment:** automated experiments are confined to the temporary worktree sandbox.
 - **Workspace conventions:** adhere strictly to the project's existing patterns, formatting, and libraries; no foreign abstractions without approval.
@@ -154,7 +163,8 @@ Eagerness is always fronted by hard rails:
 
 ## 8. System Prompt Foundation
 
-Written fresh, synthesized from common open best-practice patterns (OpenCode, Gemini CLI, Codex) and our own conventions — **never transcribed from any proprietary prompt**:
+Base adopted from Claude Code, synthesized with the best of OpenCode and Codex:
+
 1. **Persona & tone:** extreme conciseness, eager but disciplined, high-signal output, explain destructive actions before taking them, no filler.
 2. **Execution mandates:** validate before completion; diagnose before pivoting; maximize parallel tool calls; minimize search bounds; use topic/status updates for long runs.
 3. **Self-configuration ethos:** when a needed capability is missing, the agent may extend its own config (skills/rules/tools) rather than stall.
@@ -170,7 +180,7 @@ The full product still ships; this is the order it comes online.
 
 1. **Fork boots & green.** Fork pi into `polestar-x`, rebrand, preserve LICENSE, build, and pass pi's existing test suite unchanged. Establishes the solid harness baseline.
 2. **Harden/improve harness.** Targeted improvements to the forked harness (anti-qwen): remove/avoid any inherited weaknesses, confirm no continuation tax, solidify compaction and sessions.
-3. **Eager guardrailed system prompt** (written fresh + safety rails).
+3. **Eager guardrailed system prompt** (adopt Claude Code base + safety rails).
 4. **Smart model router** (default routing rules + fallback chains + privacy-aware local routing).
 5. **Self-config tools + pi-memory** plug-in.
 6. **Self-healing dev/test loop.**
@@ -193,31 +203,35 @@ Each phase ends with passing tests and a runnable agent.
 ## 11. Decisions Made / Open Questions
 
 ### Decisions (locked)
+
 - PoleStar-X is a **hard fork of pi** (Cursor↔VSCode model), own repo, MIT + attribution preserved. Not a dependency, not an extension.
 - **Bun + TypeScript**; Rust deferred to genuine hotspots.
-- Adopt **common ecosystem UX conventions** (`/init`, plugins, settings, slash commands, common TUI shape) as *inspiration only*, written fresh. **No code or text from proprietary tools (especially Claude Code).**
-- Code is taken only from permissively-licensed open projects (pi MIT, gemini-cli Apache-2.0) with attribution.
-- **Branding is independent** (owned by Gaurav); must not echo Claude/Anthropic or any vendor's name/marks (OpenClaw/Clawd cautionary tale).
+- Adopt **Claude Code's prompts, commands, UI layer**; improve, don't transcribe.
 - **pi-memory is plugged in, not rebuilt** (existing GitHub project).
 - **Improve-don't-inherit** (anti-qwen) is a binding principle.
 - **Auto-logging defaults off**; tools + `/remember` are primary.
+- Branding is owned by Gaurav (prepared separately).
 
 ### Open questions (resolve during planning)
+
 - Fork mechanism: full-history fork vs. squashed import (both preserve license; pick during planning).
 - Router task-classification: pure heuristics for v1 vs. a tiny fast-model classifier — measure before committing.
-- Which common UX conventions (`/init`, plugins, settings) to implement first.
+- Which Claude Code command/UI elements are adopted verbatim vs. reworked first.
 - pi-memory transport default (CLI vs MCP) per environment.
 
 ---
 
 ## 12. Attribution Ledger (to live in `NOTICE.md`)
 
-| Project | License | What PoleStar-X takes | Treatment |
-| --- | --- | --- | --- |
-| pi (`earendil-works/pi`) | MIT | Agent harness/core loop, unified provider/AI layer, TUI primitives | **Forked & owned**, license preserved, improved |
-| gemini-cli | Apache-2.0 | Any genuinely better core/UX pieces (e.g. Ink rendering, MCP plumbing) if adopted | Attributed code; improved |
-| OpenCode | (open; per its license) | Compaction / prompt-brevity *ideas* | Inspiration only — no code unless license permits |
-| Codex | (per its terms) | Prompt / execution-mandate *ideas* | Inspiration only — no code |
-| Claude Code | Proprietary | **Nothing.** Any UX similarity is to common ecosystem conventions (also in OpenCode/Gemini CLI), not to Claude Code | **No code, no text.** Trademark-sensitive — do not echo name/marks |
 
-> Code is taken only from permissively-licensed open projects, with the license header preserved and an entry here. From proprietary tools we take nothing. We take patterns to improve — never to inherit weaknesses, and never to risk a trademark or copyright conflict.
+| Project                  | License         | What PoleStar-X takes                                                             | Treatment                                       |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| pi (`earendil-works/pi`) | MIT             | Agent harness/core loop, unified provider/AI layer, TUI primitives                | **Forked & owned**, license preserved, improved |
+| Claude Code              | (per its terms) | System prompt structure/tone, slash-command conventions, UI patterns              | Adopted as inspiration; improved; listed        |
+| gemini-cli               | Apache-2.0      | Any genuinely better core/UX pieces (e.g. Ink rendering, MCP plumbing) if adopted | Inspiration / attributed code; improved         |
+| opencode                 | (per its terms) | Compaction/prompt-brevity ideas if adopted                                        | Inspiration; listed                             |
+| codex                    | (per its terms) | Prompt/execution-mandate ideas if adopted                                         | Inspiration; listed                             |
+
+
+> Every project listed is credited in `README.md` and `NOTICE.md`. Copied source keeps its license header. We take to improve — never to inherit weaknesses.
+

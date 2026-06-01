@@ -1,0 +1,31 @@
+{
+	"name": "@polestar-x/cli",
+	"version": "0.1.0",
+	"description": "PoleStar-X sovereign coding agent CLI",
+	"type": "module",
+	"private": true,
+	"piConfig": {
+		"name": "polestar",
+		"configDir": ".polestar"
+	},
+	"bin": {
+		"polestar": "src/cli.ts"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsgo -p tsconfig.build.json",
+		"test": "vitest --run"
+	},
+	"dependencies": {
+		"@earendil-works/pi-coding-agent": "^0.78.0"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "24.12.4",
+		"typescript": "5.9.3",
+		"vitest": "3.2.4"
+	}
+}

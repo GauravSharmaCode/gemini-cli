@@ -452,7 +452,18 @@ interface PackageJson {
 	};
 }
 
-const pkg = JSON.parse(readFileSync(getPackageJsonPath(), "utf-8")) as PackageJson;
+function resolveAppPackageJsonPath(): string {
+	const polestarAppDir = process.env.POLESTAR_APP_PACKAGE_DIR;
+	if (polestarAppDir) {
+		const polestarPackageJson = join(normalizePath(polestarAppDir), "package.json");
+		if (existsSync(polestarPackageJson)) {
+			return polestarPackageJson;
+		}
+	}
+	return getPackageJsonPath();
+}
+
+const pkg = JSON.parse(readFileSync(resolveAppPackageJsonPath(), "utf-8")) as PackageJson;
 
 const piConfigName: string | undefined = pkg.piConfig?.name;
 export const PACKAGE_NAME: string = pkg.name || "@earendil-works/pi-coding-agent";
