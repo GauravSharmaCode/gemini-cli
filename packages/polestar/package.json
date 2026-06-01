@@ -6,6 +6,7 @@
 	"private": true,
 	"piConfig": {
 		"name": "polestar",
+		"displayTitle": "PoleStar-X",
 		"configDir": ".polestar"
 	},
 	"bin": {

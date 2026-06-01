@@ -622,7 +622,7 @@ export class InteractiveMode {
 
 		// Add header with keybindings from config (unless silenced)
 		if (this.options.verbose || !this.settingsManager.getQuietStartup()) {
-			const logo = theme.bold(theme.fg("accent", APP_NAME)) + theme.fg("dim", ` v${this.version}`);
+			const logo = theme.bold(theme.fg("accent", APP_TITLE)) + theme.fg("dim", ` v${this.version}`);
 
 			// Build startup instructions using keybinding hint helpers
 			const hint = (keybinding: AppKeybinding, description: string) => keyHint(keybinding, description);
@@ -661,7 +661,7 @@ export class InteractiveMode {
 			);
 			const onboarding = theme.fg(
 				"dim",
-				`Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.`,
+				`${APP_TITLE} can explain its own features and look up its docs. Ask it how to use or extend ${APP_TITLE}.`,
 			);
 			this.builtInHeader = new ExpandableText(
 				() => `${logo}\n${compactInstructions}\n${compactOnboarding}\n\n${onboarding}`,
@@ -871,7 +871,7 @@ export class InteractiveMode {
 		}
 
 		if (extendedKeysFormat === "xterm") {
-			return "tmux extended-keys-format is xterm. Pi works best with csi-u. Add `set -g extended-keys-format csi-u` to ~/.tmux.conf and restart tmux.";
+			return `tmux extended-keys-format is xterm. ${APP_TITLE} works best with csi-u. Add \`set -g extended-keys-format csi-u\` to ~/.tmux.conf and restart tmux.`;
 		}
 
 		return undefined;
@@ -3350,7 +3350,7 @@ export class InteractiveMode {
 		try {
 			this.ui.stop();
 		} catch {}
-		console.error("pi exiting due to uncaughtException:");
+		console.error(`${APP_NAME} exiting due to uncaughtException:`);
 		console.error(error);
 		process.exit(1);
 	}
@@ -3585,7 +3585,9 @@ export class InteractiveMode {
 			// Split by space to support editor arguments (e.g., "code --wait")
 			const [editor, ...editorArgs] = editorCmd.split(" ");
 
-			process.stdout.write(`Launching external editor: ${editorCmd}\nPi will resume when the editor exits.\n`);
+			process.stdout.write(
+				`Launching external editor: ${editorCmd}\n${APP_TITLE} will resume when the editor exits.\n`,
+			);
 
 			// Do not use spawnSync here. On Windows, synchronous child_process calls can keep
 			// Node/libuv's console input read active after ui.stop() pauses stdin, racing

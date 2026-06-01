@@ -26,6 +26,37 @@ export function loadPolestarPromptBlock(overridePath?: string): string | undefin
 	return text.length > 0 ? text : undefined;
 }
 
+/** Remove inherited pi harness identity so PoleStar-X instructions are authoritative. */
+export function stripHarnessPiIdentity(basePrompt: string): string {
+	const prompt = basePrompt.replace(
+		/^You are an expert coding assistant operating inside [^,]+, a coding agent harness\.[^\n]*\n\n/,
+		"",
+	);
+
+	const marker = "Pi documentation";
+	let start = prompt.indexOf(`\n\n${marker}`);
+	if (start === -1 && prompt.startsWith(marker)) {
+		start = 0;
+	} else if (start === -1) {
+		return prompt.trimStart();
+	}
+
+	const lines = prompt.slice(start === 0 ? 0 : start + 2).split("\n");
+	let consumed = 0;
+	for (const line of lines) {
+		if (line.startsWith("Pi documentation") || line.startsWith("- ") || line.trim() === "") {
+			consumed += line.length + 1;
+			continue;
+		}
+		break;
+	}
+
+	if (start === 0) {
+		return prompt.slice(consumed).trimStart();
+	}
+	return `${prompt.slice(0, start)}${prompt.slice(start + 2 + consumed)}`.trimStart();
+}
+
 /**
  * Prepend PoleStar sections above the dynamic harness prompt. Idempotent.
  */
@@ -37,5 +68,6 @@ export function composeSystemPrompt(basePrompt: string, overridePath?: string): 
 	if (!block) {
 		return basePrompt;
 	}
-	return `${POLESTAR_MARKER}\n${block}\n\n${basePrompt}`;
+	const harnessPrompt = stripHarnessPiIdentity(basePrompt);
+	return `${POLESTAR_MARKER}\n${block}\n\n${harnessPrompt}`;
 }
